@@ -1,0 +1,28 @@
+name: Live Game Updates
+on:
+  schedule:
+    - cron: '*/15 17-23,0-4 * * *' # Every 15m from 1 PM ET to 12:45 AM ET
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+      - run: pip install pandas statsapi gspread google-auth gspread-formatting
+      - name: Fetch Live HRs
+        env:
+          GOOGLE_CREDS: ${{ secrets.GOOGLE_CREDS }}
+        run: python main.py
+      - name: Save HR Cache
+        run: |
+          git config --global user.name "GitHub Action"
+          git config --global user.email "actions@github.com"
+          git add hr_cache.json
+          git diff --quiet && git diff --staged --quiet || (git commit -m "Live HR Update [skip ci]" && git push)

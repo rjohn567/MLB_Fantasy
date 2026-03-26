@@ -13,6 +13,7 @@ Usage:
 """
 
 import json
+import os
 import sys
 import pandas as pd
 import statsapi
@@ -273,13 +274,23 @@ def update_google_sheet(df: pd.DataFrame) -> None:
     print("=" * 70)
 
     try:
-        creds = Credentials.from_service_account_file(
-            "service_account.json",
-            scopes=[
-                "https://www.googleapis.com/auth/spreadsheets",
-                "https://www.googleapis.com/auth/drive",
-            ],
-        )
+        # Try to pull the secret from GitHub environment variables
+        creds_json = os.environ.get("GOOGLE_CREDS")
+        
+        scopes = [
+            "https://www.googleapis.com/auth/spreadsheets",
+            "https://www.googleapis.com/auth/drive",
+        ]
+
+        if creds_json:
+            # Running on GitHub Actions
+            info = json.loads(creds_json)
+            creds = Credentials.from_service_account_info(info, scopes=scopes)
+            print("🔐 Authenticated via GitHub Secrets")
+        else:
+            # Running locally on your Mac
+            creds = Credentials.from_service_account_file("service_account.json", scopes=scopes)
+            print("📂 Authenticated via local service_account.json")
         client = gspread.authorize(creds)
         sheet = client.open("Fantasy Tracker")
 
@@ -371,11 +382,13 @@ def update_google_sheet(df: pd.DataFrame) -> None:
         print("❌ 'Fantasy Tracker' spreadsheet not found")
     except gspread.exceptions.APIError as e:
         print(f"❌ Google API Error: {e}")
-        try:
-            sa = json.loads(Path("service_account.json").read_text())
-            print(f"   Share the sheet with: {sa.get('client_email', '?')}")
-        except Exception:
-            pass
+        # Only try to read the file if it actually exists locally
+        if os.path.exists("service_account.json"):
+            try:
+                sa = json.loads(Path("service_account.json").read_text())
+                print(f"   Share the sheet with: {sa.get('client_email', '?')}")
+            except Exception:
+                pass
     except Exception as e:
         print(f"❌ Unexpected error: {e}")
 
