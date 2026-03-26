@@ -1,7 +1,8 @@
 name: Live Game Updates
 on:
   schedule:
-    - cron: '*/15 17-23,0-4 * * *' # Every 15m from 1 PM ET to 12:45 AM ET
+    # 17:00 UTC (1 PM ET) to 04:45 UTC (12:45 AM ET)
+    - cron: '*/15 0-4,17-23 * * *' 
   workflow_dispatch:
 
 permissions:
@@ -14,15 +15,16 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.10'
-      - run: pip install pandas MLB-StatsAPI gspread google-auth gspread-formatting
+          python-version: '3.11' # Upgraded to 3.11 for better compatibility
+      - name: Install dependencies
+        run: pip install pandas MLB-StatsAPI gspread google-auth gspread-formatting
       - name: Fetch Live HRs
         env:
           GOOGLE_CREDS: ${{ secrets.GOOGLE_CREDS }}
         run: python main.py
       - name: Save HR Cache
         run: |
-          git config --global user.name "GitHub Action"
+          git config --global user.name "GitHub Action Bot"
           git config --global user.email "actions@github.com"
           git add hr_cache.json
           git diff --quiet && git diff --staged --quiet || (git commit -m "Live HR Update [skip ci]" && git push)
