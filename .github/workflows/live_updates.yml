@@ -1,8 +1,9 @@
 name: Live Game Updates
 on:
   schedule:
-    # 17:00 UTC (1 PM ET) to 04:45 UTC (12:45 AM ET)
-    - cron: '*/15 0-4,17-23 * * *' 
+    # Runs every 15m from 1 PM to 1 AM New York Time
+    - cron: '*/15 13-23,0-1 * * *'
+      timezone: "America/New_York"
   workflow_dispatch:
 
 permissions:
