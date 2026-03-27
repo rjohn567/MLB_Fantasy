@@ -24,6 +24,7 @@ from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from gspread_formatting import CellFormat, Color, TextFormat, format_cell_ranges
 import time
+from zoneinfo import ZoneInfo
 
 
 TEAM_CACHE_FILE = "player_teams_cache.json"
@@ -309,6 +310,9 @@ def update_google_sheet(df: pd.DataFrame) -> None:
         ws1.update(sheet1_data, f"A1:B{len(sheet1_data)}")
         print("✅ Sheet 1 (Team Rankings) updated")
 
+        timestamp = datetime.now(ZoneInfo("America/New_York")).strftime("%m/%d %I:%M %p ET")
+        ws1.update_cell(18, 1, f"Last updated at: {timestamp}")
+
         # --- Sheet 2: Roster pivot ---
         try:
             ws2 = sheet.get_worksheet(1)
@@ -372,7 +376,7 @@ def update_google_sheet(df: pd.DataFrame) -> None:
 
         apply_team_formatting(ws2, df, sheet2_data, teams)
 
-        timestamp = datetime.now().strftime("%m/%d %H:%M")
+        timestamp = datetime.now(ZoneInfo("America/New_York")).strftime("%m/%d %I:%M %p ET")
         ws2.update_cell(18, 1, f"Last updated at: {timestamp}")
         print("✅ Timestamp written")
 
