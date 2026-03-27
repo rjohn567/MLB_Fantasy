@@ -1,10 +1,12 @@
 name: Live Game Updates
+
 on:
-  schedule:
-    # Runs every 15m from 1 PM to 1 AM New York Time
-    - cron: '*/15 13-23,0-1 * * *'
-      timezone: "America/New_York"
-  workflow_dispatch:
+  workflow_dispatch: # This is the "Door" the external pinger will knock on
+
+# 🛡️ Prevents two runs from trying to write to the same Sheet at once
+concurrency:
+  group: mlb-fantasy-update
+  cancel-in-progress: true
 
 permissions:
   contents: write
@@ -14,18 +16,24 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.11' # Upgraded to 3.11 for better compatibility
+          python-version: '3.11'
+
       - name: Install dependencies
         run: pip install pandas MLB-StatsAPI gspread google-auth gspread-formatting
+
       - name: Fetch Live HRs
         env:
           GOOGLE_CREDS: ${{ secrets.GOOGLE_CREDS }}
         run: python main.py
+
       - name: Save HR Cache
         run: |
           git config --global user.name "GitHub Action Bot"
           git config --global user.email "actions@github.com"
           git add hr_cache.json
+          # Only push if there's an actual change in the HR data
           git diff --quiet && git diff --staged --quiet || (git commit -m "Live HR Update [skip ci]" && git push)
